@@ -17,7 +17,11 @@ from textInfos import TextInfo, UNIT_LINE
 from threading import Lock
 from typing import List
 import NVDAState
-
+import time
+init_time = 1707572604.8901055
+def my_log(event):
+	with open('d:/temp/log.log', 'ab') as f:
+		f.write(f'{round(time.time()-init_time, 3)}\n{event}\n'.encode())
 
 class DiffAlgo(AutoPropertyObject):
 	@abstractmethod
@@ -76,20 +80,29 @@ class DiffMatchPatch(DiffAlgo):
 				# Since nvda and nvda_dmp are running on the same Python
 				# platform/version, this is okay.
 				tl = struct.pack("=II", len(old), len(new))
+				my_log('Writing text length')
 				DiffMatchPatch._proc.stdin.write(tl)
+				my_log(f'Writing old text {len(old)} chars')
 				DiffMatchPatch._proc.stdin.write(old)
+				my_log(f'Writing new text {len(new)} chars')
 				DiffMatchPatch._proc.stdin.write(new)
 				buf = b""
 				sizeb = b""
 				SIZELEN = 4
 				while len(sizeb) < SIZELEN:
 					try:
+						my_log('Reading diff size bytes')
 						sizeb += DiffMatchPatch._proc.stdout.read(SIZELEN - len(sizeb))
+						my_log(f'Read diff size, now {len(sizeb)} bytes')
 					except TypeError:
+						my_log('Type error when reading diff size')
 						pass
 				(size,) = struct.unpack("=I", sizeb)
+				my_log(f'Received diff size {size}')
 				while len(buf) < size:
+					my_log('Reading diff')
 					buf += DiffMatchPatch._proc.stdout.read(size - len(buf))
+					my_log(f'Read diff, now {len(buf)} bytes')
 				DiffMatchPatch._proc.stdin.flush()
 				DiffMatchPatch._proc.stdout.flush()
 				return [
